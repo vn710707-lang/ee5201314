@@ -642,12 +642,11 @@ footer{position:relative;z-index:1;background:var(--void);border-top:.5px solid 
 #notif-banner.on{transform:translateY(0)}
 </style>
 
-<!-- Firebase SDK -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+<!-- Firebase SDK (compat version) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script>
   const firebaseConfig = {
     apiKey: "AIzaSyAQ88-VXPPFwv3NWZoB_qcgF1CamYCS-oU",
     authDomain: "ee390936.firebaseapp.com",
@@ -656,43 +655,32 @@ footer{position:relative;z-index:1;background:var(--void);border-top:.5px solid 
     messagingSenderId: "404859650301",
     appId: "1:404859650301:web:8fe62c5154c688a6a07e94"
   };
+  firebase.initializeApp(firebaseConfig);
+  const _auth = firebase.auth();
+  const _db = firebase.firestore();
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  // 監聽登入狀態
-  onAuthStateChanged(auth, async (user) => {
+  _auth.onAuthStateChanged(async (user) => {
     if (user) {
       try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        window.CU = snap.exists() ? snap.data() : { name: user.displayName||user.email, email: user.email, nick: user.displayName||user.email.split('@')[0], sign: '' };
+        const snap = await _db.collection('users').doc(user.uid).get();
+        window.CU = snap.exists ? snap.data() : { name: user.displayName||user.email, email: user.email, nick: user.displayName||user.email.split('@')[0], sign: '' };
       } catch(e) {
         window.CU = { name: user.email, email: user.email, nick: user.email.split('@')[0], sign: '' };
       }
     } else {
       window.CU = null;
     }
-    window.dispatchEvent(new CustomEvent('firebaseAuthChanged', { detail: { user: window.CU } }));
+    if(typeof updateNav === 'function') updateNav();
   });
 
-  // Firebase 登入函數（掛載到 window）
-  window.fbLogin = async (email, password) => {
-    const res = await signInWithEmailAndPassword(auth, email, password);
+  window.fbLogin = (e,p) => _auth.signInWithEmailAndPassword(e,p);
+  window.fbRegister = async (e,p,n,k,s) => {
+    const res = await _auth.createUserWithEmailAndPassword(e,p);
+    await res.user.updateProfile({displayName:k||n});
+    await _db.collection('users').doc(res.user.uid).set({name:n,nick:k||n,email:e,sign:s,uid:res.user.uid,createdAt:new Date().toISOString()});
     return res.user;
   };
-
-  window.fbRegister = async (email, password, name, nick, sign) => {
-    const res = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(res.user, { displayName: nick||name });
-    const userData = { name, nick: nick||name, email, sign, uid: res.user.uid, createdAt: new Date().toISOString() };
-    await setDoc(doc(db, 'users', res.user.uid), userData);
-    return res.user;
-  };
-
-  window.fbLogout = async () => {
-    await signOut(auth);
-  };
+  window.fbLogout = () => _auth.signOut();
 </script>
 </head>
 <body>
@@ -2652,10 +2640,6 @@ async function sendAI(){
 // ══════════════════════════════════════════════
 // ✦ 初始化所有功能
 // ══════════════════════════════════════════════
-// 監聽 Firebase 登入狀態變化
-window.addEventListener('firebaseAuthChanged', function() {
-  if(typeof updateNav === 'function') updateNav();
-});
 initDate();
 initTicker();
 initStrip();

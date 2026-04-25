@@ -397,11 +397,10 @@ body{font-family:'Noto Sans TC',sans-serif;font-weight:300;color:var(--text);pos
 </style>
 
 <!-- Firebase SDK -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script>
   const firebaseConfig = {
     apiKey: "AIzaSyAQ88-VXPPFwv3NWZoB_qcgF1CamYCS-oU",
     authDomain: "ee390936.firebaseapp.com",
@@ -410,40 +409,32 @@ body{font-family:'Noto Sans TC',sans-serif;font-weight:300;color:var(--text);pos
     messagingSenderId: "404859650301",
     appId: "1:404859650301:web:8fe62c5154c688a6a07e94"
   };
+  firebase.initializeApp(firebaseConfig);
+  const _auth = firebase.auth();
+  const _db = firebase.firestore();
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  onAuthStateChanged(auth, async (user) => {
+  _auth.onAuthStateChanged(async (user) => {
     if (user) {
       try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        window.CU = snap.exists() ? snap.data() : { name: user.displayName||user.email, email: user.email, nick: user.displayName||user.email.split('@')[0], sign: '' };
+        const snap = await _db.collection('users').doc(user.uid).get();
+        window.CU = snap.exists ? snap.data() : { name: user.displayName||user.email, email: user.email, nick: user.displayName||user.email.split('@')[0], sign: '' };
       } catch(e) {
         window.CU = { name: user.email, email: user.email, nick: user.email.split('@')[0], sign: '' };
       }
     } else {
       window.CU = null;
     }
-    // 用 CustomEvent 通知主程式
-    window.dispatchEvent(new CustomEvent('firebaseAuthChanged', { detail: { user: window.CU } }));
+    if(typeof updateNav === 'function') updateNav();
   });
 
-  window.fbLogin = async (email, password) => {
-    const res = await signInWithEmailAndPassword(auth, email, password);
-    return res.user;
-  };
-
+  window.fbLogin = (email, password) => _auth.signInWithEmailAndPassword(email, password);
   window.fbRegister = async (email, password, name, nick, sign) => {
-    const res = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(res.user, { displayName: nick||name });
-    const userData = { name, nick: nick||name, email, sign, uid: res.user.uid, createdAt: new Date().toISOString() };
-    await setDoc(doc(db, 'users', res.user.uid), userData);
+    const res = await _auth.createUserWithEmailAndPassword(email, password);
+    await res.user.updateProfile({ displayName: nick||name });
+    await _db.collection('users').doc(res.user.uid).set({ name, nick: nick||name, email, sign, uid: res.user.uid, createdAt: new Date().toISOString() });
     return res.user;
   };
-
-  window.fbLogout = async () => { await signOut(auth); };
+  window.fbLogout = () => _auth.signOut();
 </script>
 </head>
 <body>

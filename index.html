@@ -1877,11 +1877,16 @@ async function doLogout(){
 }
 function doForgot(){if(document.getElementById('fe').value.trim())showMsg('forgot-ok');}
 function updateNav(){
-  if(!CU)return;
-  document.getElementById('nav-guest').style.display='none';
-  document.getElementById('nav-mem').classList.add('on');
-  const nm=document.getElementById('nav-nm');if(nm)nm.textContent=CU.nick||CU.name;
-  const av=document.getElementById('nav-av');if(av)av.textContent=(CU.nick||CU.name)[0];
+  const cu=window.CU||CU;
+  if(!cu){
+    const ng=document.getElementById('nav-guest');if(ng)ng.style.display='flex';
+    const nm=document.getElementById('nav-mem');if(nm)nm.classList.remove('on');
+    return;
+  }
+  const ng=document.getElementById('nav-guest');if(ng)ng.style.display='none';
+  const nm=document.getElementById('nav-mem');if(nm)nm.classList.add('on');
+  const nn=document.getElementById('nav-nm');if(nn)nn.textContent=cu.nick||cu.name;
+  const av=document.getElementById('nav-av');if(av)av.textContent=(cu.nick||cu.name)[0];
 }
 function showMsg(id,text){const e=document.getElementById(id);if(!e)return;if(text)e.textContent=text;e.classList.add('show');}
 function hideMsg(ids){ids.forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('show');});}

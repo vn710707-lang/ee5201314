@@ -1362,18 +1362,19 @@ function doRegister(){
   localStorage.setItem('xmg_'+e,JSON.stringify(CU));showMsg('reg-ok');
   setTimeout(()=>{closeModal('authModal');updateNav();},1400);
 }
-async function doLogout(){try{if(window.fbLogout)await window.fbLogout();}catch(e){}CU=null;updateNav();showToast('✦ 已登出');}
+async function doLogout(){try{if(window.fbLogout)await window.fbLogout();}catch(e){}window.CU=null;CU=null;updateNav();showToast('✦ 已登出');}
 function updateNav(){
+  const cu=window.CU||CU;
   const guest=document.getElementById('tb-guest'),av=document.getElementById('tb-av');
   const myGuest=document.getElementById('my-guest'),myMem=document.getElementById('my-member');
-  if(CU){
+  if(cu){
     if(guest)guest.style.display='none';
-    if(av){av.classList.add('on');av.textContent=(CU.nick||CU.name)[0];}
+    if(av){av.classList.add('on');av.textContent=(cu.nick||cu.name)[0];}
     if(myGuest)myGuest.style.display='none';
     if(myMem)myMem.style.display='block';
     const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-    set('my-name',CU.nick||CU.name);set('my-sign',CU.sign||'未設定星座');
-    const myAv=document.getElementById('my-av');if(myAv)myAv.textContent=(CU.nick||CU.name)[0];
+    set('my-name',cu.nick||cu.name);set('my-sign',cu.sign||'未設定星座');
+    const myAv=document.getElementById('my-av');if(myAv)myAv.textContent=(cu.nick||cu.name)[0];
     const statAi=document.getElementById('stat-ai');if(statAi)statAi.textContent='無限';
     const logTxt=document.getElementById('logout-txt');if(logTxt)logTxt.textContent='登出帳號';
   }else{

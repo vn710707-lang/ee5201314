@@ -423,10 +423,14 @@ body{font-family:'Noto Sans TC',sans-serif;font-weight:300;color:var(--text);pos
       } catch(e) {
         window.CU = { name: user.email, email: user.email, nick: user.email.split('@')[0], sign: '' };
       }
-      if(typeof updateNav === 'function') updateNav();
     } else {
       window.CU = null;
+    }
+    // 等待 DOM 載入完成後再更新
+    if(document.readyState === 'complete') {
       if(typeof updateNav === 'function') updateNav();
+    } else {
+      window.addEventListener('load', () => { if(typeof updateNav === 'function') updateNav(); });
     }
   });
 

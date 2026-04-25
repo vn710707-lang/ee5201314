@@ -664,7 +664,6 @@ footer{position:relative;z-index:1;background:var(--void);border-top:.5px solid 
   // 監聽登入狀態
   onAuthStateChanged(auth, async (user) => {
     if (user) {
-      // 從 Firestore 取得會員資料
       try {
         const snap = await getDoc(doc(db, 'users', user.uid));
         if (snap.exists()) {
@@ -675,10 +674,13 @@ footer{position:relative;z-index:1;background:var(--void);border-top:.5px solid 
       } catch(e) {
         window.CU = { name: user.email, email: user.email, nick: user.email.split('@')[0], sign: '' };
       }
-      if(typeof updateNav === 'function') updateNav();
     } else {
       window.CU = null;
+    }
+    if(document.readyState === 'complete') {
       if(typeof updateNav === 'function') updateNav();
+    } else {
+      window.addEventListener('load', () => { if(typeof updateNav === 'function') updateNav(); });
     }
   });
 

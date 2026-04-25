@@ -2433,7 +2433,11 @@ function shareResult(platform,text){
 function renderShareBar(signName,scores,mainText){
   const text=buildShareText(signName,scores,mainText);
   window._shareText=text;
-  return '<div class="share-bar"><span class="share-label">✦ 分享運勢</span><button class="share-btn fb" onclick="shareResult('fb',window._shareText)">Facebook</button><button class="share-btn line" onclick="shareResult('line',window._shareText)">LINE</button><button class="share-btn tw" onclick="shareResult('tw',window._shareText)">X / Twitter</button><button class="share-btn copy" onclick="shareResult('copy',window._shareText)">📋 複製</button></div>';
+  return '<div class="share-bar"><span class="share-label">✦ 分享運勢</span>'+
+    '<button class="share-btn fb" onclick="shareResult(\'fb\',window._shareText)">Facebook</button>'+
+    '<button class="share-btn line" onclick="shareResult(\'line\',window._shareText)">LINE</button>'+
+    '<button class="share-btn tw" onclick="shareResult(\'tw\',window._shareText)">X / Twitter</button>'+
+    '<button class="share-btn copy" onclick="shareResult(\'copy\',window._shareText)">📋 複製</button></div>';
 }
 
 // Patch showDF and showZ to add share bar

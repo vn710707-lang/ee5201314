@@ -426,12 +426,8 @@ body{font-family:'Noto Sans TC',sans-serif;font-weight:300;color:var(--text);pos
     } else {
       window.CU = null;
     }
-    // 等待 DOM 載入完成後再更新
-    if(document.readyState === 'complete') {
-      if(typeof updateNav === 'function') updateNav();
-    } else {
-      window.addEventListener('load', () => { if(typeof updateNav === 'function') updateNav(); });
-    }
+    // 用 CustomEvent 通知主程式
+    window.dispatchEvent(new CustomEvent('firebaseAuthChanged', { detail: { user: window.CU } }));
   });
 
   window.fbLogin = async (email, password) => {
@@ -1422,6 +1418,10 @@ if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.ser
 // ══════════════════════════════════════════════
 // ✦ 初始化
 // ══════════════════════════════════════════════
+// 監聽 Firebase 登入狀態變化
+window.addEventListener('firebaseAuthChanged', function(e) {
+  updateNav();
+});
 initAll();
 initZodiac();
 renderCal();

@@ -2432,7 +2432,7 @@ function shareResult(platform,text){
 }
 function renderShareBar(signName,scores,mainText){
   const text=buildShareText(signName,scores,mainText);
-  const esc=text.replace(/\/g,'\\').replace(/`/g,"'").replace(/\n/g,'\n');
+  const esc=text.replace(/[`]/g,"'").replace(/\n/g,' ');
   return `<div class="share-bar"><span class="share-label">✦ 分享運勢</span><button class="share-btn fb" onclick='shareResult("fb",\`${esc}\`)'>Facebook</button><button class="share-btn line" onclick='shareResult("line",\`${esc}\`)'>LINE</button><button class="share-btn tw" onclick='shareResult("tw",\`${esc}\`)'>X / Twitter</button><button class="share-btn copy" onclick='shareResult("copy",\`${esc}\`)'>📋 複製</button></div>`;
 }
 

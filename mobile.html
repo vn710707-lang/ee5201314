@@ -395,6 +395,56 @@ body{font-family:'Noto Sans TC',sans-serif;font-weight:300;color:var(--text);pos
 .pn2{font-size:8px;color:var(--text3);margin-bottom:2px}
 .ps2{font-size:10px;color:var(--neon1);font-family:'Noto Serif TC',serif;font-weight:600}
 </style>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAQ88-VXPPFwv3NWZoB_qcgF1CamYCS-oU",
+    authDomain: "ee390936.firebaseapp.com",
+    projectId: "ee390936",
+    storageBucket: "ee390936.firebasestorage.app",
+    messagingSenderId: "404859650301",
+    appId: "1:404859650301:web:8fe62c5154c688a6a07e94"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        window.CU = snap.exists() ? snap.data() : { name: user.displayName||user.email, email: user.email, nick: user.displayName||user.email.split('@')[0], sign: '' };
+      } catch(e) {
+        window.CU = { name: user.email, email: user.email, nick: user.email.split('@')[0], sign: '' };
+      }
+      if(typeof updateNav === 'function') updateNav();
+    } else {
+      window.CU = null;
+      if(typeof updateNav === 'function') updateNav();
+    }
+  });
+
+  window.fbLogin = async (email, password) => {
+    const res = await signInWithEmailAndPassword(auth, email, password);
+    return res.user;
+  };
+
+  window.fbRegister = async (email, password, name, nick, sign) => {
+    const res = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(res.user, { displayName: nick||name });
+    const userData = { name, nick: nick||name, email, sign, uid: res.user.uid, createdAt: new Date().toISOString() };
+    await setDoc(doc(db, 'users', res.user.uid), userData);
+    return res.user;
+  };
+
+  window.fbLogout = async () => { await signOut(auth); };
+</script>
 </head>
 <body>
 
@@ -1300,14 +1350,16 @@ function switchTab(t){
   const p=document.getElementById('pane-'+t);if(p)p.classList.add('active');
   const ti=document.getElementById('authTitle');if(ti)ti.textContent=t==='login'?'會員登入':'免費加入';
 }
-function doLogin(){
+async function doLogin(){
   const e=document.getElementById('le').value.trim(),p=document.getElementById('lp').value;
   hideMsg(['login-ok','login-err']);
   if(!e||!p){showMsg('login-err','請填寫電子郵件與密碼');return;}
-  const s=localStorage.getItem('xmg_'+e);
-  if(!s){showMsg('login-err','找不到此帳號，請先註冊');return;}
-  CU=JSON.parse(s);showMsg('login-ok');
-  setTimeout(()=>{closeModal('authModal');updateNav();},1200);
+  try{
+    if(window.fbLogin){await window.fbLogin(e,p);showMsg('login-ok');setTimeout(()=>{closeModal('authModal');updateNav();},1200);}
+    else{const s=localStorage.getItem('xmg_'+e);if(!s){showMsg('login-err','找不到此帳號');return;}CU=JSON.parse(s);showMsg('login-ok');setTimeout(()=>{closeModal('authModal');updateNav();},1200);}
+  }catch(err){
+    showMsg('login-err',err.code==='auth/invalid-credential'?'帳號或密碼錯誤':'登入失敗：'+err.message);
+  }
 }
 function doRegister(){
   const n=document.getElementById('rn').value.trim(),e=document.getElementById('re').value.trim(),p=document.getElementById('rp').value,p2=document.getElementById('rp2').value,s=document.getElementById('rs').value,a=document.getElementById('ra').checked;
@@ -1319,7 +1371,7 @@ function doRegister(){
   localStorage.setItem('xmg_'+e,JSON.stringify(CU));showMsg('reg-ok');
   setTimeout(()=>{closeModal('authModal');updateNav();},1400);
 }
-function doLogout(){CU=null;updateNav();showToast('✦ 已登出');}
+async function doLogout(){try{if(window.fbLogout)await window.fbLogout();}catch(e){}CU=null;updateNav();showToast('✦ 已登出');}
 function updateNav(){
   const guest=document.getElementById('tb-guest'),av=document.getElementById('tb-av');
   const myGuest=document.getElementById('my-guest'),myMem=document.getElementById('my-member');

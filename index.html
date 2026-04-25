@@ -641,6 +641,65 @@ footer{position:relative;z-index:1;background:var(--void);border-top:.5px solid 
 #notif-banner{position:fixed;top:56px;left:0;right:0;z-index:190;background:rgba(13,10,31,.96);border-bottom:.5px solid rgba(155,111,212,.4);padding:10px 1.5rem;display:flex;align-items:center;gap:10px;transform:translateY(-100%);transition:transform .4s cubic-bezier(.4,0,.2,1);backdrop-filter:blur(15px)}
 #notif-banner.on{transform:translateY(0)}
 </style>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAQ88-VXPPFwv3NWZoB_qcgF1CamYCS-oU",
+    authDomain: "ee390936.firebaseapp.com",
+    projectId: "ee390936",
+    storageBucket: "ee390936.firebasestorage.app",
+    messagingSenderId: "404859650301",
+    appId: "1:404859650301:web:8fe62c5154c688a6a07e94"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // 監聽登入狀態
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      // 從 Firestore 取得會員資料
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (snap.exists()) {
+          window.CU = snap.data();
+        } else {
+          window.CU = { name: user.displayName||user.email, email: user.email, nick: user.displayName||user.email.split('@')[0], sign: '' };
+        }
+      } catch(e) {
+        window.CU = { name: user.email, email: user.email, nick: user.email.split('@')[0], sign: '' };
+      }
+      if(typeof updateNav === 'function') updateNav();
+    } else {
+      window.CU = null;
+      if(typeof updateNav === 'function') updateNav();
+    }
+  });
+
+  // Firebase 登入函數（掛載到 window）
+  window.fbLogin = async (email, password) => {
+    const res = await signInWithEmailAndPassword(auth, email, password);
+    return res.user;
+  };
+
+  window.fbRegister = async (email, password, name, nick, sign) => {
+    const res = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(res.user, { displayName: nick||name });
+    const userData = { name, nick: nick||name, email, sign, uid: res.user.uid, createdAt: new Date().toISOString() };
+    await setDoc(doc(db, 'users', res.user.uid), userData);
+    return res.user;
+  };
+
+  window.fbLogout = async () => {
+    await signOut(auth);
+  };
+</script>
 </head>
 <body>
 
@@ -1782,28 +1841,58 @@ function switchTab(tab){
   const p=document.getElementById('pane-'+tab);if(p)p.classList.add('active');
   const t=document.getElementById('authTitle');if(t)t.textContent=tab==='login'?'會員登入':tab==='register'?'免費加入古錐星命閣':'重設密碼';
 }
-function doLogin(){
+async function doLogin(){
   const e=document.getElementById('le').value.trim(),p=document.getElementById('lp').value;
   hideMsg(['login-ok','login-err']);
   if(!e||!p){showMsg('login-err','請填寫電子郵件與密碼。');return;}
-  const s=localStorage.getItem('xmg_'+e);
-  if(!s){showMsg('login-err','找不到此帳號，請先註冊。');return;}
-  CU=JSON.parse(s);showMsg('login-ok');
-  setTimeout(()=>{closeModal('authModal');updateNav();},1200);
+  try{
+    if(window.fbLogin){
+      await window.fbLogin(e,p);
+      showMsg('login-ok');
+      setTimeout(()=>{closeModal('authModal');updateNav();},1200);
+    } else {
+      // 備用：localStorage
+      const s=localStorage.getItem('xmg_'+e);
+      if(!s){showMsg('login-err','找不到此帳號，請先註冊。');return;}
+      CU=JSON.parse(s);showMsg('login-ok');
+      setTimeout(()=>{closeModal('authModal');updateNav();},1200);
+    }
+  }catch(err){
+    const msg=err.code==='auth/user-not-found'?'找不到此帳號，請先註冊。':err.code==='auth/wrong-password'||err.code==='auth/invalid-credential'?'密碼錯誤，請重試。':'登入失敗，請檢查帳號密碼。';
+    showMsg('login-err',msg);
+  }
 }
-function doRegister(){
+async function doRegister(){
   const n=document.getElementById('rn').value.trim(),e=document.getElementById('re').value.trim(),
         p=document.getElementById('rp').value,p2=document.getElementById('rp2').value,
         s=document.getElementById('rs').value,a=document.getElementById('ra').checked;
+  const k=document.getElementById('rk').value||n;
   hideMsg(['reg-ok','reg-err']);
   if(!n||!e||!p||!s){showMsg('reg-err','請填寫所有必填欄位。');return;}
   if(p!==p2){showMsg('reg-err','兩次密碼不一致。');return;}
   if(!a){showMsg('reg-err','請同意服務條款才能加入。');return;}
-  CU={name:n,email:e,sign:s,nick:document.getElementById('rk').value||n,birth:document.getElementById('rb').value};
-  localStorage.setItem('xmg_'+e,JSON.stringify(CU));showMsg('reg-ok');
-  setTimeout(()=>{closeModal('authModal');updateNav();},1400);
+  if(p.length<6){showMsg('reg-err','密碼至少需要6個字元。');return;}
+  try{
+    if(window.fbRegister){
+      await window.fbRegister(e,p,n,k,s);
+      showMsg('reg-ok');
+      setTimeout(()=>{closeModal('authModal');updateNav();},1400);
+    } else {
+      CU={name:n,email:e,sign:s,nick:k,birth:document.getElementById('rb').value};
+      localStorage.setItem('xmg_'+e,JSON.stringify(CU));showMsg('reg-ok');
+      setTimeout(()=>{closeModal('authModal');updateNav();},1400);
+    }
+  }catch(err){
+    const msg=err.code==='auth/email-already-in-use'?'此電子郵件已被使用，請直接登入。':err.code==='auth/weak-password'?'密碼強度不足，請使用至少6個字元。':'註冊失敗：'+err.message;
+    showMsg('reg-err',msg);
+  }
 }
-function doLogout(){CU=null;document.getElementById('nav-guest').style.display='flex';document.getElementById('nav-mem').classList.remove('on');}
+async function doLogout(){
+  try{if(window.fbLogout)await window.fbLogout();}catch(e){}
+  CU=null;
+  document.getElementById('nav-guest').style.display='flex';
+  document.getElementById('nav-mem').classList.remove('on');
+}
 function doForgot(){if(document.getElementById('fe').value.trim())showMsg('forgot-ok');}
 function updateNav(){
   if(!CU)return;

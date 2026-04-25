@@ -2432,8 +2432,8 @@ function shareResult(platform,text){
 }
 function renderShareBar(signName,scores,mainText){
   const text=buildShareText(signName,scores,mainText);
-  const esc=text.replace(/[`]/g,"'").replace(/\n/g,' ');
-  return `<div class="share-bar"><span class="share-label">✦ 分享運勢</span><button class="share-btn fb" onclick='shareResult("fb",\`${esc}\`)'>Facebook</button><button class="share-btn line" onclick='shareResult("line",\`${esc}\`)'>LINE</button><button class="share-btn tw" onclick='shareResult("tw",\`${esc}\`)'>X / Twitter</button><button class="share-btn copy" onclick='shareResult("copy",\`${esc}\`)'>📋 複製</button></div>`;
+  window._shareText=text;
+  return '<div class="share-bar"><span class="share-label">✦ 分享運勢</span><button class="share-btn fb" onclick="shareResult('fb',window._shareText)">Facebook</button><button class="share-btn line" onclick="shareResult('line',window._shareText)">LINE</button><button class="share-btn tw" onclick="shareResult('tw',window._shareText)">X / Twitter</button><button class="share-btn copy" onclick="shareResult('copy',window._shareText)">📋 複製</button></div>';
 }
 
 // Patch showDF and showZ to add share bar
@@ -2518,7 +2518,9 @@ async function sendAI(){
   addAiMsg(text,true);showTypingBubble();
   const errEl=document.getElementById('aiError');if(errEl)errEl.classList.remove('on');
   const lun=getLunar(),moon=getMoonPhase();
-  const sysPrompt=`你是「古錐星命閣」的AI星命師，精通東西方命理（西洋占星、塔羅、紫微斗數、八字）。用繁體中文回答，語氣神秘溫暖，像充滿智慧的命理師。今日：${YR}年${MO}月${DY}日 農曆${lun.stem}${lun.branch}${lun.animal}年${lun.month}${lun.day} ${moon} 今日最旺：${SIGNS[si(SEED,0,0,11)]}座 主題：${aiTopic}。回答3-7句，具體有用，適當加✦或星座符號，結尾給一句鼓勵。`;
+  const userSign=CU&&CU.sign?CU.sign:'（用戶未登入）';
+  const userName=CU&&CU.nick?CU.nick:CU&&CU.name?CU.name:'';
+  const sysPrompt=`你是「古錐星命閣」的AI星命師，精通東西方命理（西洋占星、塔羅、紫微斗數、八字）。用繁體中文回答，語氣神秘溫暖，像充滿智慧的命理師。今日：${YR}年${MO}月${DY}日 農曆${lun.stem}${lun.branch}${lun.animal}年${lun.month}${lun.day} ${moon} 今日最旺：${SIGNS[si(SEED,0,0,11)]}座 主題：${aiTopic}${userSign!=='（用戶未登入）'?` 用戶星座：${userSign}${userName?' 用戶姓名：'+userName:''}（請優先針對此星座給出個人化解讀）`:''}。回答3-7句，具體有用，適當加✦或星座符號，結尾給一句鼓勵。`;
   const FALLBACKS={
     '星座運勢':`✦ 今日${moon}下，${SIGNS[si(SEED,0,0,11)]}座能量最為充沛。您提到的問題，從星象角度：今日適合靜心思考，相信自己的直覺，宇宙正在為您安排最好的結果。記住：困難是化妝的祝福。✨`,
     '塔羅解讀':`🃏 宇宙為您抽出「${['星星','太陽','月亮','力量','命運之輪'][SEED%5]}」牌。這張牌告訴您：現在是重要的轉折點，內心的聲音比外在的聲音更值得相信。放下焦慮，以平靜的心迎接改變。✦`,
